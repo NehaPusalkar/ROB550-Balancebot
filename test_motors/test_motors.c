@@ -122,7 +122,8 @@ int main(int argc, char** argv){
         //
         //
         //////////////////////////////////////////////
-        
+        printf("Another method\n");
+        test_motor_dir(0.95,2);
         printf("Motors passed all tests.\n");
 
         mb_motor_disable();
@@ -143,10 +144,12 @@ int test_motor_duty(int motor, int polarity, float duty, float dtime_s){
     float rot_speed;
     rc_encoder_write(motor, 0);
     mb_motor_set(motor, duty);
+    double current = mb_motor_read_current(motor);
     rc_nanosleep((int)dtime_s * 1E9);
     encoder_ticks = polarity * rc_encoder_eqep_read(motor);
     rot_speed = encoder_ticks * (2.0*3.14) / (GEAR_RATIO * ENCODER_RES) / dtime_s;
-    printf("[ Ticks : %d,  Rot Speed (rad/s) : %3.4f]\n", encoder_ticks, rot_speed);
+    printf("[ Ticks : %d,  Rot Speed (rad/s) : %3.4f], current : %f \n", encoder_ticks, rot_speed, current);
+ 
     mb_motor_set(motor, 0.0);
 
     if (encoder_ticks < 10.0 && encoder_ticks > -10.0)
@@ -179,7 +182,6 @@ int test_motor_dir(float duty, float dtime_s){
     right_rot_speed = right_encoder *(2*M_PI) / (GEAR_RATIO * ENCODER_RES)/ dtime_s;
     printf("[ Left Rot Speed (rad/s) : %3.4f, Right Rot Speed (rad/s) : %3.4f ]\n", left_rot_speed, right_rot_speed);
     mb_motor_set_all(0.0);
-
     if (signum(left_rot_speed) != signum(right_rot_speed))
     {
         return -1;

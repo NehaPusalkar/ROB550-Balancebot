@@ -20,13 +20,28 @@
 #include <rc/adc.h>
 #include <rc/time.h>
 #include <rc/mpu.h>
+#include "../common/mb_defs.h"
 
-FILE* f1;
+
 
 /*******************************************************************************
 * int main() 
 *
 *******************************************************************************/
+rc_mpu_data_t data;
+
+
+//Callback function
+void print_data(void){
+        rc_mpu_read_accel(&data);
+        rc_mpu_read_gyro(&data);
+	printf("accel:%6.2f %6.2f %6.2f |", data.accel[0], data.accel[1], data.accel[2]);
+	printf("gyro: %6.1f %6.1f %6.1f |", data.gyro[0], data.gyro[1], data.gyro[2]);
+	printf("taitByran:%6.1f %6.1f %6.1f \n", data.dmp_TaitBryan[TB_PITCH_X],data.dmp_TaitBryan[TB_ROLL_Y],
+		data.dmp_TaitBryan[TB_YAW_Z]);
+        
+}
+
 int main(){
 	
 	// make sure another instance isn't running
@@ -66,12 +81,28 @@ int main(){
 	rc_make_pid_file();
 
 
-    rc_set_state(RUNNING);
-    while(rc_get_state()!=EXITING){
-    	rc_nanosleep(1E9);
-    }
+	FILE* f1 = fopen("InertialDataPitch4_0.csv","w");
+    rc_mpu_config_t conf = rc_mpu_default_config();
+    conf.dmp_sample_rate = SAMPLE_RATE_HZ;
+    conf.orient = ORIENTATION_Z_DOWN;
 
+    rc_mpu_initialize(&data, conf);
+    rc_mpu_initialize_dmp(&data, conf);
+    	
+    rc_set_state(RUNNING);
+    rc_mpu_set_dmp_callback(&print_data);
+    while(rc_get_state()!=EXITING){
+
+	fprintf(f1, "%6.2f %6.2f %6.2f", data.accel[0], data.accel[1], data.accel[2]);
+	fprintf(f1, "%6.1f %6.1f %6.1f", data.gyro[0], data.gyro[1], data.gyro[2]);
+	fprintf(f1, "%6.1f %6.1f %6.1f \n", data.dmp_TaitBryan[TB_PITCH_X],data.dmp_TaitBryan[TB_ROLL_Y],
+		data.dmp_TaitBryan[TB_YAW_Z]);
+	
+    	rc_nanosleep(1E9/SAMPLE_RATE_HZ);
+    }
+	
 	// exit cleanly
+	fclose(f1);
 	rc_encoder_eqep_cleanup();
 	rc_remove_pid_file();   // remove pid file LAST
 	return 0;

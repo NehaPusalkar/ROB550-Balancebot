@@ -56,6 +56,11 @@ int main(){
 //        return -1;
 //    }
 
+    if(mb_motor_init()<0){
+        fprintf(stderr,"ERROR: failed to initialze mb_motors\n");
+        return -1;
+    }
+
     // initialize enocders
     if(rc_encoder_eqep_init()==-1){
         fprintf(stderr,"ERROR: failed to initialize eqep encoders\n");
@@ -92,13 +97,13 @@ int main(){
     /**********************************************************************
     [OPTION B] TODO : Follow on the guide within get_motor_params and 
                       construct it accordingly. Then run it for each motor
-                      given you know its resistance.
+                      given you know its resistance.*/
 
     int pass_mot1, pass_mot2;
     float dtime_s = 5;  // 5sec is usuall enough but you can change
-    pass_mot1 = get_motor_params(motor1, polarity1, resistance1, dtime_s)
-    pass_mot2 = get_motor_params(motor2, polarity2, resistance2, dtime_s)
-    **********************************************************************/
+    pass_mot1 = get_motor_params(LEFT_MOTOR, MOT_1_POL, 6.5, dtime_s);
+    pass_mot2 = get_motor_params(RIGHT_MOTOR, MOT_2_POL, 5.8, dtime_s);
+    //**********************************************************************/
 
 
     // exit cleanly
@@ -129,7 +134,7 @@ int get_motor_params(int motor, int polarity, float resistance, float dtime_s){
     float duty = 0.99;                  //Running at full duty cycle
     float encoder_ticks, speed, noload_speed, mot_constant, stall_torque, shaft_fric, shaft_inertia;
     double noload_current;
-    double dt, start_time, time_elapse, prevtime, time_const;
+    double dt, start_time, current_time, time_elapse, prevtime, time_const;
     int got_time_const = 0;
 
     // First run for steady state data and obtain all info attainable from that.
@@ -139,17 +144,18 @@ int get_motor_params(int motor, int polarity, float resistance, float dtime_s){
     rc_nanosleep(5E9);                      // Sleep for 5s [changeable] to guarantee we reach steady state
 
     // TODO: Steady State measurements and calculations
-    /*
-    encoder_ticks = ??;                     // Get your encoder counts accumulated for 5s
-    noload_speed = ??;                      // Use your accumulated encoder counts + sleep time to get a noload speed measurement
-    noload_current = ??;                    // Read from the analog pin to get the no-load current
+    
+    encoder_ticks = polarity * rc_encoder_eqep_read(motor);     // Get your encoder counts accumulated for 5s
+    noload_speed = fabs(encoder_ticks * (2.0*3.14) / (GEAR_RATIO * ENCODER_RES) / dtime_s);       // Use your accumulated encoder counts + sleep time to get a noload speed measurement
+    noload_current = mb_motor_read_current(motor);     // Read from the analog pin to get the no-load current
 
     // Things you would be able to calculate from the three recorded values above
-    stall_torque = ??;                      
-    mot_constant = ??;
-    shaft_fric = ??;
+	mot_constant = (12 - noload_current*resistance)/noload_speed;    
+	stall_torque = mot_constant*12/resistance;                      
+    
+    	shaft_fric = ((mot_constant*12/noload_speed) - pow(mot_constant,2))/resistance;
 
-    */
+    
 
     // Turn off the motor after steady state calcs are done
     mb_motor_set(motor, 0.0);
@@ -170,29 +176,34 @@ int get_motor_params(int motor, int polarity, float resistance, float dtime_s){
     // Our while loop termination condition is the max run time dtime_s we provide as an argument to the function
     while(time_elapse < dtime_s){
 
-        /*
-        time_elapse = ??;
-        dt = ??;
-        prevtime = ??;
-        encoder_ticks = ??;
-        speed ??;
-        */
+        current_time = (double)(rc_nanos_since_epoch())*1.0E-9;
+        time_elapse = current_time - start_time;
+	
+        dt = time_elapse - prevtime;
+        prevtime = time_elapse;
+        encoder_ticks = polarity * rc_encoder_eqep_read(motor);
+        speed = fabs(encoder_ticks * (2.0*3.14) / (GEAR_RATIO * ENCODER_RES) / dt);
+        
 
-        if(!got_time_const && speed > (0.63 * noload_speed) ){
+        if(!got_time_const && speed > (0.63 * fabs(noload_speed)) ){
             printf("Got time constant\n");
             got_time_const = 1;
-            // time_const = ??;
+		printf("%3.4f \n", time_elapse);
+            time_const = time_elapse;
+	printf("%3.4f \n", time_const);
         }
         rc_nanosleep(1E7);
     }
 
-
-    // shaft_inertia = f(time_const) = ??;
+    //shaft_inertia = f(time_const);
+	printf("%3.4f here \n", time_const);
+    shaft_inertia = time_const*shaft_fric;
 
     // Finally, print all the info you obtained
     printf("[ No Load Speed (rad/s) : %3.4f, No Load Current (A) : %3.4lf,  Stall Torque (N.m) : %3.4f ]\n", noload_speed, noload_current, stall_torque);
-    printf("[ Motor Constant K : %3.4f, Shaft Friction : %3.4f,  Shaft Inertia (Kg.m^2) : %1.4e ]\n\n", mot_constant, shaft_fric, shaft_inertia);
+    printf("[ Motor Constant K : %3.4f, Shaft Friction : %3.4f,  Shaft Inertia (Kg.m^2) : %1.4e, time constant : %1.4e ]\n\n", mot_constant, shaft_fric, shaft_inertia,time_const);
 
+    mb_motor_set(motor,0.0);
     pass_flag = 1;
 
     return pass_flag;

@@ -22,7 +22,7 @@
 int mb_controller_init(){
     mb_controller_load_config();
     /* TODO initialize your controllers here*/
-
+	
     return 0;
 }
 
@@ -62,6 +62,7 @@ int mb_controller_load_config(){
 
 int mb_controller_update(mb_state_t* mb_state){
     /*TODO: Write your controller here*/
+	//output = rc_filter_march(&low_pass, input);
     return 0;
 }
 
