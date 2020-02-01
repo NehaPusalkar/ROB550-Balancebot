@@ -21,15 +21,15 @@
 #include <rc/time.h>
 #include <rc/mpu.h>
 #include "../common/mb_defs.h"
-
+#include "../balancebot/balancebot.h"
 
 
 /*******************************************************************************
 * int main() 
 *
 *******************************************************************************/
-rc_mpu_data_t data;
-
+static rc_mpu_data_t data;
+//mpu_data = data;
 
 //Callback function
 void print_data(void){
@@ -37,7 +37,7 @@ void print_data(void){
         rc_mpu_read_gyro(&data);
 	printf("accel:%6.2f %6.2f %6.2f |", data.accel[0], data.accel[1], data.accel[2]);
 	printf("gyro: %6.1f %6.1f %6.1f |", data.gyro[0], data.gyro[1], data.gyro[2]);
-	printf("taitByran:%6.1f %6.1f %6.1f \n", data.dmp_TaitBryan[TB_PITCH_X],data.dmp_TaitBryan[TB_ROLL_Y],
+	printf("taitByran:%6.4f %6.4f %6.4f \n", data.dmp_TaitBryan[TB_PITCH_X],data.dmp_TaitBryan[TB_ROLL_Y],
 		data.dmp_TaitBryan[TB_YAW_Z]);
         
 }

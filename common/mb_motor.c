@@ -55,6 +55,7 @@ int mb_motor_init_freq(int pwm_freq_hz){
 * 
 *******************************************************************************/
 int mb_motor_cleanup(){
+    mb_motor_disable();
     rc_gpio_cleanup(MDIR1_CHIP, MDIR1_PIN);
     rc_gpio_cleanup(MDIR2_CHIP, MDIR2_PIN);
     if(unlikely(!init_flag)){
@@ -120,6 +121,10 @@ int mb_motor_set(int motor, double duty){
         fprintf(stderr,"ERROR: trying to rc_set_motor_all before they have been initialized\n");
         return -1;
      }
+     double abs_duty=fabs(duty);
+     if(abs_duty>1){
+        abs_duty=1;
+     }
 
      if(motor == 1){
 	if (duty < 0) {
@@ -129,7 +134,7 @@ int mb_motor_set(int motor, double duty){
 		rc_gpio_set_value(MDIR1_CHIP, MDIR1_PIN, 0);
         }
 
-       	rc_pwm_set_duty(1, 'A', fabs(duty));
+       	rc_pwm_set_duty(1, 'A', abs_duty);
 
      }
      else{
@@ -140,7 +145,7 @@ int mb_motor_set(int motor, double duty){
 	else {
 		rc_gpio_set_value(MDIR2_CHIP, MDIR2_PIN, 1);
         }
-       rc_pwm_set_duty(1, 'B', fabs(duty));
+       rc_pwm_set_duty(1, 'B', abs_duty);
      }
 
     return 0;
