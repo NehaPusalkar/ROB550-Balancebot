@@ -200,6 +200,7 @@ void balancebot_controller(){
         mb_state.prevtime = mb_state.time_elapse;
         mb_state.left_speed = ENC_2_POL*(mb_state.left_encoder-mb_state.pre_left_encoder) * (2.0*M_PI) / (GEAR_RATIO * ENCODER_RES) / mb_state.small_dt;
         mb_state.right_speed = ENC_1_POL*(mb_state.right_encoder-mb_state.pre_right_encoder) * (2.0*M_PI) / (GEAR_RATIO * ENCODER_RES) / mb_state.small_dt;
+        double avg_velocity=(mb_state.left_speed+mb_state.right_speed)/2;
         
     // Update odometry
      mb_odometry_update(&mb_odometry, &mb_state); 
@@ -223,22 +224,23 @@ void balancebot_controller(){
       else if(mb_odometry.y<=-0.9){
          mb_state.turn_angle=M_PI;
       }*/
-
+      mb_state.turn_angle=0;
       if(stop_flag==0){
-      mb_state.angle=mb_state.angle+0.2*DT *  FWD_VEL_SENSITIVITY;
+      mb_state.angle=mb_state.angle+0.2;
       //mb_state.angle=1/0.0418;
       }
-      if(mb_odometry.x>1.0&&stop_flag==0){
+      if(mb_odometry.x>11.5&&stop_flag==0){
       mb_state.angle=-mb_state.phi;
       stop_flag=1;
       }
       printf("ref angle: %f ,current phi: %f \n",mb_state.angle,-mb_state.phi);
 
-      /*mb_state.angle= 8/0.0418;
+      /*mb_state.angle= mb_state.angle+0.05;
+
       if(mb_odometry.x >= 0.85&&mb_odometry.y<=0.9){
          mb_state.turn_angle=M_PI/2;
       }
-      if(mb_odometry.x >= 0.9&&mb_odometry.y>=0.85){
+      if(mb_odometry.x >= 0.85&&mb_odometry.y>=0.85){
          mb_state.turn_angle=M_PI;
       }
       if(mb_odometry.x <= 0.05&&mb_odometry.y>=0.85){
