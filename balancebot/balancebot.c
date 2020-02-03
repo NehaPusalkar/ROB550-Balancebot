@@ -224,17 +224,18 @@ void balancebot_controller(){
       else if(mb_odometry.y<=-0.9){
          mb_state.turn_angle=M_PI;
       }*/
-      /*mb_state.turn_angle=0;
+      mb_state.turn_angle=0;
       if(stop_flag==0){
       mb_state.angle=mb_state.angle+0.2;
+      //mb_state.angle=1/0.0418;
       }
       if(mb_odometry.x>11.5&&stop_flag==0){
       mb_state.angle=-mb_state.phi;
       stop_flag=1;
       }
-      printf("ref angle: %f ,current phi: %f \n",mb_state.angle,-mb_state.phi);*/
+      printf("ref angle: %f ,current phi: %f \n",mb_state.angle,-mb_state.phi);
 
-      mb_state.angle= mb_state.angle+0.05;
+      /*mb_state.angle= mb_state.angle+0.05;
 
       if(mb_odometry.x >= 0.85&&mb_odometry.y<=0.9){
          mb_state.turn_angle=M_PI/2;
@@ -257,8 +258,8 @@ void balancebot_controller(){
       }
       else{
       mb_controller_update(&mb_state);
-      }
-      //mb_controller_update(&mb_state);
+      }*/
+      mb_controller_update(&mb_state);
     }
 
     if(mb_setpoints.manual_ctl){
