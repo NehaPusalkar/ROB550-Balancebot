@@ -27,8 +27,8 @@
 #define ENCODER_RES                 48 // encoder counts per motor shaft revolution
 #define WHEEL_DIAMETER              .083 // diameter of wheel in meters
 #define WHEEL_BASE                  .207 // wheel separation distance in meters
-#define FWD_VEL_SENSITIVITY       25 // sensitivity of RC control for moving
-#define TURN_VEL_SENSITIVITY      2.5 // sensitivity of RC control for turning
+#define FWD_VEL_SENSITIVITY       20 // sensitivity of RC control for moving
+#define TURN_VEL_SENSITIVITY      1.0 // sensitivity of RC control for turning
 #define SAMPLE_RATE_HZ            100 // main filter and control loop speed
 #define DT                       0.01 // 1/sample_rate
 #define PRINTF_HZ                  10 // rate of print loop

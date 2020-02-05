@@ -22,18 +22,17 @@
 
 
 #include "balancebot.h"
-int four_turn_flag=0;
+
+
+int turn_flag=0;
+int num_setpoints=0;
 int stop_flag=0;
+int num_circle=0;
 /*******************************************************************************
 * int main() 
 *
 *******************************************************************************/
 int main(){
-	// make sure another instance isn't running
-    // if return value is -3 then a background process is running with
-    // higher privaledges and we couldn't kill it, in which case we should
-    // not continue or there may be hardware conflicts. If it returned -4
-    // then there was an invalid argument that needs to be fixed.
 	
     if(rc_kill_existing_process(2.0)<-2) return -1;
 
@@ -90,7 +89,7 @@ int main(){
 	pthread_t  setpoint_control_thread;
 	rc_pthread_create(&setpoint_control_thread, setpoint_control_loop, (void*) NULL, SCHED_FIFO, 50);
 
-
+	
 	// TODO: start motion capture message recieve thread
 
 	// set up IMU configuration
@@ -207,59 +206,100 @@ void balancebot_controller(){
 
 
     // Calculate controller outputs
-     //mb_controller_update(&mb_state);
  
     if(!mb_setpoints.manual_ctl){
     	//send motor commands
-      /*if(mb_odometry.x <= 0.8){
-         mb_state.angle= 8/0.0418;
-       }
-      else{
-         mb_state.angle= 4/0.0418;
-         if(mb_odometry.psi<M_PI/2-0.2){
-          mb_state.turn_angle=mb_state.turn_angle+0.5*DT * TURN_VEL_SENSITIVITY;
-         }
-         else{mb_state.turn_angle=M_PI/2;}
-      }
-      else if(mb_odometry.y<=-0.9){
-         mb_state.turn_angle=M_PI;
-      }*/
-      mb_state.turn_angle=0;
+		mb_state.angle= mb_state.angle+0.03;
+		if(mb_odometry.x <= 0.9&&num_setpoints==0){
+			mb_state.turn_angle=0+num_circle*2*M_PI;
+		}
+		if(mb_odometry.x >= 0.9&&num_setpoints==0){
+			mb_state.turn_angle=M_PI/2+num_circle*2*M_PI;
+			num_setpoints++;
+		}
+
+		if(num_setpoints==1&&mb_odometry.y>=0.9){
+			mb_state.turn_angle=M_PI+num_circle*2*M_PI;
+			num_setpoints++;
+		}
+
+		if(mb_odometry.x <= 0.05&&num_setpoints==2&&!turn_flag){
+			mb_state.turn_angle=M_PI*1.5+num_circle*2*M_PI;
+			turn_flag=1;
+			num_setpoints++;
+		}
+
+		if(num_setpoints==3&&mb_odometry.y<=0.05&&turn_flag){
+			mb_state.turn_angle=M_PI*2+num_circle*2*M_PI;
+			turn_flag=0;
+			num_setpoints=0;
+			num_circle=num_circle+1;
+		}
+      mb_controller_update(&mb_state);
+	  ////start of 11 m 
+      /*mb_state.turn_angle=0;
       if(stop_flag==0){
       mb_state.angle=mb_state.angle+0.2;
-      //mb_state.angle=1/0.0418;
       }
-      if(mb_odometry.x>11.5&&stop_flag==0){
-      mb_state.angle=-mb_state.phi;
+	  if(mb_odometry.x>6&&stop_flag==0){
+		  mb_state.angle=mb_state.angle+0.001;
+	  }
+      if(mb_odometry.x>11.5&&stop_flag==0);
       stop_flag=1;
       }
-      printf("ref angle: %f ,current phi: %f \n",mb_state.angle,-mb_state.phi);
+	  mb_controller_update(&mb_state);*/
+     ///Start of open loop controller that sorta worked
 
-      /*mb_state.angle= mb_state.angle+0.05;
+	 //double corner_x[4]={0.984,0.995,0.0,0.054};
+	 //double corner_y[4]={-0.021,0.961,0.946,-0.039};
+	 /*double corner_x[4]={1, 1, 0, 0};
+	 double corner_y[4]={0, 1, 1, 0};
+	 double corner_angle[4]={M_PI/2, M_PI, M_PI*1.5, M_PI*2};
 
-      if(mb_odometry.x >= 0.85&&mb_odometry.y<=0.9){
-         mb_state.turn_angle=M_PI/2;
-      }
-      if(mb_odometry.x >= 0.85&&mb_odometry.y>=0.85){
-         mb_state.turn_angle=M_PI;
-      }
-      if(mb_odometry.x <= 0.05&&mb_odometry.y>=0.85){
-         mb_state.turn_angle=M_PI*1.5;
-         four_turn_flag=1;
-      }
-       
-      if(four_turn_flag==1&&mb_odometry.y <= 0.05){
-         mb_state.turn_angle=M_PI*2;
-         stop_flag=1;
-      }
+		double t_x=corner_x[num_setpoints];
+		double t_y=corner_y[num_setpoints];
+		double t_angle=corner_angle[num_setpoints]+num_circle*2*M_PI;
+	 
+		if(!turn_flag){
+		 mb_state.angle= mb_state.angle+0.03;
+	    }
 
-      if(stop_flag==1&&fabs(mb_odometry.psi-M_PI*2)<0.2){
-          mb_motor_set_all(0);
-      }
-      else{
-      mb_controller_update(&mb_state);
-      }*/
-      mb_controller_update(&mb_state);
+		if((pow(mb_odometry.x-t_x,2)+pow(mb_odometry.y-t_y,2)) <= 0.01 && !turn_flag){
+			printf("Setpoint: %d \n", num_setpoints);
+			turn_flag =1;
+			double deltax = corner_x[num_setpoints+1]-mb_odometry.x;
+			double deltay = corner_y[num_setpoints+1]-mb_odometry.y;
+			if(num_setpoints==0){
+				mb_state.turn_angle= atan2(deltay, deltax)+mb_odometry.psi;
+				//mb_state.turn_angle = M_PI/2+num_circle*2*M_PI;
+			}
+			if(num_setpoints==1){
+				mb_state.turn_angle= -atan2(deltax, deltay)+mb_odometry.psi;
+				//mb_state.turn_angle = M_PI+num_circle*2*M_PI;
+			}
+			if(num_setpoints==2){
+				mb_state.turn_angle= -atan2(deltay, deltax)+mb_odometry.psi;
+				//mb_state.turn_angle = 1.5*M_PI+num_circle*2*M_PI;
+			}
+			if(num_setpoints==3){
+				deltax = corner_x[0]-mb_odometry.x;
+				deltay = corner_y[0]-mb_odometry.y;
+				mb_state.turn_angle= atan2(deltax, deltay)+mb_odometry.psi;
+				
+				//mb_state.turn_angle = 2*M_PI+num_circle*2*M_PI;
+			}
+
+			printf("turn_angle: %f \n",mb_state.turn_angle);
+        }
+
+		if(fabs(mb_odometry.psi-t_angle)<0.05){
+			turn_flag=0;
+			num_setpoints=num_setpoints+1;
+			if(num_setpoints==4){num_setpoints=0;num_circle=num_circle+1;}
+	    }	
+		mb_controller_update(&mb_state);*/
+		
+	  
     }
 
     if(mb_setpoints.manual_ctl){
@@ -268,7 +308,7 @@ void balancebot_controller(){
      mb_state.turn_angle=mb_state.turn_angle+mb_setpoints.turn_velocity*DT * TURN_VEL_SENSITIVITY;
      mb_controller_update(&mb_state);
    	}
-
+	
 	XBEE_getData();
 	double q_array[4] = {xbeeMsg.qw, xbeeMsg.qx, xbeeMsg.qy, xbeeMsg.qz};
 	double tb_array[3] = {0, 0, 0};

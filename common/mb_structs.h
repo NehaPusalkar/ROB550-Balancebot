@@ -34,6 +34,8 @@ struct mb_state{
     double right_speed;
     double turn_angle;
     double heading;
+    double curr_tb;
+    double prev_tb;
 };
 
 typedef struct mb_setpoints mb_setpoints_t;
